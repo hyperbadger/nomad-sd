@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"sort"
 	"syscall"
 
 	"github.com/go-kit/log"
@@ -16,6 +17,20 @@ import (
 
 	sd "github.com/waquidvp/nomad-sd/discovery/nomad"
 )
+
+func equalBytes(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
 
 func flattenTgs(tgs []*targetgroup.Group) (fTgs []*targetgroup.Group) {
 	fTgs = make([]*targetgroup.Group, 0)
@@ -95,15 +110,26 @@ func main() {
 
 	level.Info(logger).Log("msg", "Service discovery started")
 
+	oldTBytes := make([]byte, 0)
 	for {
 		select {
 		case tgs := <-tgsChan:
 			fTgs := flattenTgs(tgs)
+			sort.Slice(fTgs, func(i, j int) bool {
+				return fTgs[i].Targets[0][model.AddressLabel] < fTgs[j].Targets[0][model.AddressLabel]
+			})
+
 			tBytes, err := yaml.Marshal(fTgs)
 			if err != nil {
 				level.Error(logger).Log("msg", "Error marshalling target group", "err", err)
 				os.Exit(1)
 			}
+
+			if equalBytes(oldTBytes, tBytes) {
+				continue
+			}
+
+			oldTBytes = tBytes
 
 			err = os.WriteFile(*tPath, tBytes, 0644)
 			if err != nil {
