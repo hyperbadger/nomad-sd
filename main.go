@@ -13,9 +13,9 @@ import (
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/discovery"
 	"github.com/prometheus/prometheus/discovery/targetgroup"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
-	sd "github.com/waquidvp/nomad-sd/discovery/nomad"
+	sd "github.com/hyperbadger/nomad-sd/discovery/nomad"
 )
 
 func equalBytes(a, b []byte) bool {
